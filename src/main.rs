@@ -13,8 +13,11 @@ use serenity::framework::standard::{
 
 use std::env;
 
+mod parameters;
+use parameters::Parameters;
+
 #[group]
-#[commands(roll)]
+#[commands(r, roll)]
 struct General;
 
 struct Handler;
@@ -44,11 +47,47 @@ async fn main() {
 }
 
 #[command]
+async fn r(ctx: &Context, msg: &Message) -> CommandResult {
+    do_roll(ctx, msg).await
+}
+
+#[command]
 async fn roll(ctx: &Context, msg: &Message) -> CommandResult {
+    do_roll(ctx, msg).await
+}
+
+async fn do_roll(ctx: &Context, msg: &Message) -> CommandResult {
+    use std::cmp::{max, min};
+
     let d1 = i32(1..6);
     let d2 = i32(1..6);
-    let message = format!("{}+{}={}", d1, d2, d1+d2);
-    msg.reply(ctx, message).await?;
+
+    let Parameters { modifier, hope, despair } = parameters::parameters(msg);
+
+    if hope && despair {
+        // TODO: wording
+        msg.reply(ctx, "You can't roll with advantage AND disadvantage!").await?;
+        return Ok(());
+    }
+
+    let mut sum = d1 + d2 + modifier.unwrap_or(0);
+    let mut dice = format!("Rolled {} and {}", d1, d2);
+
+    if hope {
+        let d3 = i32(1..6);
+        let least = min(d1, min(d2, d3));
+        sum += d3 - least;
+        dice = format!("Rolled {}, {} and {}; dropped {}", d1, d2, d3, least);
+    } else if despair {
+        let d3 = i32(1..6);
+        let greatest = max(d1, max(d2, d3));
+        sum += d3 - greatest;
+        dice = format!("Rolled {}, {} and {}; dropped {}", d1, d2, d3, greatest);
+    }
+
+    msg.reply(ctx, format!("**{}**, ({}){}", sum, dice, modifier.map(|x| format!("+{}", x)).unwrap_or("".to_owned()))).await?;
+    
 
     Ok(())
 }
+

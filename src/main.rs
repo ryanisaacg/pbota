@@ -1,3 +1,4 @@
+use anyhow::Context as AContext;
 use fastrand::i32;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
@@ -13,11 +14,12 @@ use serenity::framework::standard::{
 
 use std::env;
 
+mod char;
 mod parameters;
-use parameters::Parameters;
+use parameters::{Parameters, Modifier, ModifierValue};
 
 #[group]
-#[commands(r, roll)]
+#[commands(r, roll, char)]
 struct General;
 
 struct Handler;
@@ -62,7 +64,7 @@ async fn do_roll(ctx: &Context, msg: &Message) -> CommandResult {
     let d1 = i32(1..6);
     let d2 = i32(1..6);
 
-    let Parameters { modifier, hope, despair } = parameters::parameters(msg);
+    let Parameters { modifier, character, hope, despair } = parameters::parameters(msg);
 
     if hope && despair {
         // TODO: wording
@@ -70,7 +72,15 @@ async fn do_roll(ctx: &Context, msg: &Message) -> CommandResult {
         return Ok(());
     }
 
-    let mut sum = d1 + d2 + modifier.unwrap_or(0);
+    let mod_num = match modifier {
+        Some(Modifier { ref value }) => match value {
+            ModifierValue::Number(num) => *num,
+            ModifierValue::Stat { sign, stat } => sign * char::get_stat(character, msg.author.id.0, stat)?,
+        },
+        None => 0,
+    };
+
+    let mut sum = d1 + d2 + mod_num;
     let mut dice = format!("Rolled {} and {}", d1, d2);
 
     if hope {
@@ -85,9 +95,40 @@ async fn do_roll(ctx: &Context, msg: &Message) -> CommandResult {
         dice = format!("Rolled {}, {} and {}; dropped {}", d1, d2, d3, greatest);
     }
 
-    msg.reply(ctx, format!("**{}**, ({}){}", sum, dice, modifier.map(|x| format!("+{}", x)).unwrap_or("".to_owned()))).await?;
+    msg.reply(ctx, format!("**{}**, ({}){}", sum, dice, modifier.map(|_| format!("+{}", mod_num)).unwrap_or("".to_owned()))).await?;
     
 
     Ok(())
 }
+
+#[command]
+async fn char(ctx: &Context, msg: &Message) -> CommandResult {
+    let mut words = msg.content.split(' ');
+    words.next(); // strip leading
+    match words.next() {
+        Some("new") => {
+            let name = words.next().context("No name provided")?;
+            char::new(name)?;
+            msg.reply(ctx, format!("Character with name {} created", name)).await?;
+        }
+        Some("choose") => {
+            let name = words.next().context("No name provided")?;
+            char::choose(msg.author.id.0, name)?;
+            msg.reply(ctx, format!("Set up to roll as {}", name)).await?;
+        }
+        Some("stat") => {
+            let name = words.next().context("No name provided")?;
+            let stat = words.next().context("No stat provided")?;
+            let val = words.next().context("No value provided")?.parse::<i32>()?;
+            char::set_stat(name, stat, val)?;
+            msg.reply(ctx, format!("{}'s {} stat is now {}", name, stat, val)).await?;
+        }
+        _ => {
+            msg.reply(ctx, "Command not recognized").await?;
+            return Ok(());
+        }
+    }
+    Ok(())
+}
+
 

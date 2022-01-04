@@ -41,18 +41,27 @@ pub fn set_stat(name: &str, stat: &str, val: i32) -> Result<()> {
     Ok(())
 }
 
+pub fn get_current_char(user: u64) -> Result<String> {
+    let cfg = read_config()?;
+    Ok(current_char(&cfg, user)?.to_owned())
+}
+
 pub fn get_stat(name: Option<&str>, user: u64, stat: &str) -> Result<i32> {
     let cfg = read_config()?;
     let name = if let Some(name) = name {
         name
     } else {
-        cfg.user_to_char.get(&user).context("No character chosen")?
+        current_char(&cfg, user)?
     };
 
     Ok(*cfg.characters.get(name)
         .with_context(|| format!("Character {} not found", name))?
         .stats.get(stat)
         .with_context(|| format!("Stat {} not set for character {}", stat, name))?)
+}
+
+fn current_char(cfg: &CharConfig, user: u64) -> Result<&str> {
+    Ok(cfg.user_to_char.get(&user).context("No character chosen")?)
 }
 
 fn read_config() -> Result<CharConfig> {

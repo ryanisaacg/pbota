@@ -22,6 +22,10 @@ enum Matcher {
     Greater(i32),
 }
 
+pub fn get_moves() -> Result<Vec<String>> {
+    Ok(read_config()?.moves.keys().cloned().collect())
+}
+
 pub fn get_move(name: &str) -> Result<Move> {
     Ok(read_config()?.moves.get(name).context("Move not found")?.clone())
 }

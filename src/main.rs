@@ -1,4 +1,4 @@
-use anyhow::{Context as AContext, Result};
+use anyhow::{Context as AContext, Result, bail};
 use fastrand::i32;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
@@ -51,24 +51,22 @@ async fn main() {
 
 #[command]
 async fn r(ctx: &Context, msg: &Message) -> CommandResult {
-    do_roll(ctx, msg).await
+    command_wrapper(ctx, msg, do_roll).await
 }
 
 #[command]
 async fn roll(ctx: &Context, msg: &Message) -> CommandResult {
-    do_roll(ctx, msg).await
+    command_wrapper(ctx, msg, do_roll).await
 }
 
-async fn do_roll(ctx: &Context, msg: &Message) -> CommandResult {
+fn do_roll(msg: &Message) -> Result<String> {
    let contents = match msg.content.find(' ') {
        Some(idx) => msg.content.split_at(idx + 1).1,
        None => "",
     };
     let param = parameters::parameters(contents);
     let (_, message) = calculate_roll(msg.author.id.0, param)?;
-    msg.reply(ctx, message).await?;
-
-    Ok(())
+    Ok(message)
 }
 
 fn calculate_roll(user: u64, Parameters { modifier, character, hope, despair }: Parameters) -> Result<(i32, String)> {
@@ -79,7 +77,7 @@ fn calculate_roll(user: u64, Parameters { modifier, character, hope, despair }: 
 
     if hope && despair {
         // TODO: wording
-        return None.context("You can't roll with advantage AND disadvantage!");
+        bail!("You can't roll with advantage AND disadvantage!");
     }
 
     let (mod_num, mod_string) = match modifier {
@@ -113,53 +111,65 @@ fn calculate_roll(user: u64, Parameters { modifier, character, hope, despair }: 
 
 #[command]
 async fn m(ctx: &Context, msg: &Message) -> CommandResult {
-    let mut words = msg.content.split(' ');
-    words.next(); // strip leading
-    let move_name = words.next().context("Move name required")?;
-    let mv = moves::get_move(move_name)?;
-    let parameters = words.collect::<Vec<&str>>().join(" ");
-    let mut param = parameters::parameters(&parameters);
-    if let Some((ref stat, sign)) = mv.stat {
-        if param.modifier.is_none() {
-            param.modifier = Some(Modifier::Stat { stat, sign });
+    command_wrapper(ctx, msg, |msg| {
+        let mut words = msg.content.split(' ');
+        words.next(); // strip leading
+        let move_name = words.next().context("Move name required")?;
+        let mv = moves::get_move(move_name)?;
+        let parameters = words.collect::<Vec<&str>>().join(" ");
+        let mut param = parameters::parameters(&parameters);
+        if let Some((ref stat, sign)) = mv.stat {
+            if param.modifier.is_none() {
+                param.modifier = Some(Modifier::Stat { stat, sign });
+            }
         }
-    }
-    let (result, roll_text) = calculate_roll(msg.author.id.0, param)?;
-    let text = moves::get_move_text(mv, format!("You rolled a {}", roll_text), result)?;
-    msg.reply(ctx, text).await?;
-    Ok(())
+        let (result, roll_text) = calculate_roll(msg.author.id.0, param)?;
+        Ok(moves::get_move_text(mv, format!("You rolled a {}", roll_text), result)?)
+    }).await
 }
 
 #[command]
 async fn char(ctx: &Context, msg: &Message) -> CommandResult {
-    let mut words = msg.content.split(' ');
-    words.next(); // strip leading
-    match words.next() {
-        Some("new") => {
-            let name = words.next().context("No name provided")?;
-            char::new(name)?;
-            msg.reply(ctx, format!("Character with name {} created", name)).await?;
+    command_wrapper(ctx, msg, |msg| {
+        let mut words = msg.content.split(' ');
+        words.next(); // strip leading
+        match words.next() {
+            Some("new") => {
+                let name = words.next().context("No name provided")?;
+                char::new(name)?;
+                Ok(format!("Character with name {} created", name))
+            }
+            Some("choose") => {
+                let name = words.next().context("No name provided")?;
+                char::choose(msg.author.id.0, name)?;
+                Ok(format!("Set up to roll as {}", name))
+            }
+            Some("stat") => {
+                let name = words.next().context("No name provided")?;
+                let stat = words.next().context("No stat provided")?;
+                let val = words.next().context("No value provided")?.parse::<i32>()?;
+                char::set_stat(name, stat, val)?;
+                Ok(format!("{}'s {} stat is now {}", name, stat, val))
+            }
+            _ => {
+                bail!("Command not recognized");
+            }
         }
-        Some("choose") => {
-            let name = words.next().context("No name provided")?;
-            char::choose(msg.author.id.0, name)?;
-            msg.reply(ctx, format!("Set up to roll as {}", name)).await?;
-        }
-        Some("stat") => {
-            let name = words.next().context("No name provided")?;
-            let stat = words.next().context("No stat provided")?;
-            let val = words.next().context("No value provided")?.parse::<i32>()?;
-            char::set_stat(name, stat, val)?;
-            msg.reply(ctx, format!("{}'s {} stat is now {}", name, stat, val)).await?;
-        }
-        _ => {
-            msg.reply(ctx, "Command not recognized").await?;
-            return Ok(());
-        }
-    }
-    Ok(())
+    }).await
 }
 
-
+async fn command_wrapper(ctx: &Context, msg: &Message, f: impl FnOnce(&Message) -> Result<String>) -> CommandResult {
+    let result = f(msg);
+    match result {
+        Ok(ok) => {
+            msg.reply(ctx, ok).await?;
+            Ok(())
+        }
+        Err(err) => {
+            msg.reply(ctx, format!("**Error:** {}", err)).await?;
+            Ok(())
+        }
+    }
+}
 
 

@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use crate::Modifier;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
@@ -61,14 +60,3 @@ fn read_config() -> Result<MoveList> {
     })
 }
 
-fn write_config(config: MoveList) -> Result<()> {
-    use std::io::Write;
-    
-    // TODO: find a specific file?
-    let data = serde_json::to_string(&config)?;
-    let f = std::fs::File::create("moves.json")?;
-    let mut f = std::io::BufWriter::new(f);
-    f.write_all(data.as_bytes())?;
-
-    Ok(())
-}

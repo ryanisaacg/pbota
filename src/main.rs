@@ -1,4 +1,4 @@
-use anyhow::Context as AContext;
+use anyhow::{Context as AContext, Result};
 use fastrand::i32;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
@@ -15,11 +15,12 @@ use serenity::framework::standard::{
 use std::env;
 
 mod char;
+mod moves;
 mod parameters;
-use parameters::{Parameters, Modifier, ModifierValue};
+use parameters::{Parameters, Modifier};
 
 #[group]
-#[commands(r, roll, char)]
+#[commands(m, r, roll, char)]
 struct General;
 
 struct Handler;
@@ -59,25 +60,36 @@ async fn roll(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 async fn do_roll(ctx: &Context, msg: &Message) -> CommandResult {
+   let contents = match msg.content.find(' ') {
+       Some(idx) => msg.content.split_at(idx + 1).1,
+       None => "",
+    };
+    let param = parameters::parameters(contents);
+    let (_, message) = calculate_roll(msg.author.id.0, param)?;
+    msg.reply(ctx, message).await?;
+
+    Ok(())
+}
+
+fn calculate_roll(user: u64, Parameters { modifier, character, hope, despair }: Parameters) -> Result<(i32, String)> {
     use std::cmp::{max, min};
 
     let d1 = i32(1..6);
     let d2 = i32(1..6);
 
-    let Parameters { modifier, character, hope, despair } = parameters::parameters(msg);
-
     if hope && despair {
         // TODO: wording
-        msg.reply(ctx, "You can't roll with advantage AND disadvantage!").await?;
-        return Ok(());
+        return None.context("You can't roll with advantage AND disadvantage!");
     }
 
-    let mod_num = match modifier {
-        Some(Modifier { ref value }) => match value {
-            ModifierValue::Number(num) => *num,
-            ModifierValue::Stat { sign, stat } => sign * char::get_stat(character, msg.author.id.0, stat)?,
-        },
-        None => 0,
+    let (mod_num, mod_string) = match modifier {
+        Some(Modifier::Number(num)) => (num, format!("+{}", num)),
+        Some(Modifier::Stat { sign, stat }) => {
+            let value = sign * char::get_stat(character, user, stat)?;
+            let sign = if sign > 0 { "+" } else { "-" };
+            (value, format!("{}{} [{}]", sign, stat, value))
+        }
+        None => (0, "".to_owned()),
     };
 
     let mut sum = d1 + d2 + mod_num;
@@ -95,9 +107,26 @@ async fn do_roll(ctx: &Context, msg: &Message) -> CommandResult {
         dice = format!("Rolled {}, {} and {}; dropped {}", d1, d2, d3, greatest);
     }
 
-    msg.reply(ctx, format!("**{}**, ({}){}", sum, dice, modifier.map(|_| format!("+{}", mod_num)).unwrap_or("".to_owned()))).await?;
-    
+    Ok((sum, format!("**{}**, ({}){}", sum, dice, mod_string)))
+}
 
+
+#[command]
+async fn m(ctx: &Context, msg: &Message) -> CommandResult {
+    let mut words = msg.content.split(' ');
+    words.next(); // strip leading
+    let move_name = words.next().context("Move name required")?;
+    let mv = moves::get_move(move_name)?;
+    let parameters = words.collect::<Vec<&str>>().join(" ");
+    let mut param = parameters::parameters(&parameters);
+    if let Some((ref stat, sign)) = mv.stat {
+        if param.modifier.is_none() {
+            param.modifier = Some(Modifier::Stat { stat, sign });
+        }
+    }
+    let (result, roll_text) = calculate_roll(msg.author.id.0, param)?;
+    let text = moves::get_move_text(mv, result)?;
+    msg.reply(ctx, format!("{}\n\nYou rolled a {}", text, roll_text)).await?;
     Ok(())
 }
 

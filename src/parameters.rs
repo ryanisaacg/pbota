@@ -1,4 +1,3 @@
-use serenity::model::channel::Message;
 
 #[derive(Default)]
 pub struct Parameters<'a> {
@@ -9,12 +8,7 @@ pub struct Parameters<'a> {
 }
 
 #[derive(Debug)]
-pub struct Modifier<'a> {
-    pub value: ModifierValue<'a>,
-}
-
-#[derive(Debug)]
-pub enum ModifierValue<'a> {
+pub enum Modifier<'a> {
     Number(i32),
     Stat {
         sign: i32,
@@ -22,32 +16,19 @@ pub enum ModifierValue<'a> {
     },
 }
 
-pub fn parameters<'a>(msg: &'a Message) -> Parameters<'a> {
+pub fn parameters<'a>(contents: &'a str) -> Parameters<'a> {
     let mut parameters = Parameters::default();
 
-   let content = &msg.content;
-
-   let (_, params) = match content.find(' ') {
-       Some(idx) => content.split_at(idx + 1),
-       None => {
-           return parameters;
-       }
-    };
-
-    println!("{}", params);
-
-    for param in params.split(&[',', ' '][..]) { 
+    for param in contents.split(&[',', ' '][..]) { 
         match param.chars().next() {
             Some(sign @ '+' | sign @ '-') => {
-                parameters.modifier = Some(Modifier {
-                    value: match param.parse::<i32>() {
-                        Ok(val) => ModifierValue::Number(val),
-                        Err(_) => ModifierValue::Stat { 
+                parameters.modifier = Some(match param.parse::<i32>() {
+                        Ok(val) => Modifier::Number(val),
+                        Err(_) => Modifier::Stat { 
                             sign: if sign == '-' { -1 } else { 1 },
                             stat: &param[1..]
                         },
-                    },
-                });
+                    });
             }
             Some('@') => {
                 parameters.character = Some(&param[1..]);

@@ -125,8 +125,8 @@ async fn m(ctx: &Context, msg: &Message) -> CommandResult {
         }
     }
     let (result, roll_text) = calculate_roll(msg.author.id.0, param)?;
-    let text = moves::get_move_text(mv, result)?;
-    msg.reply(ctx, format!("{}\n\nYou rolled a {}", text, roll_text)).await?;
+    let text = moves::get_move_text(mv, format!("You rolled a {}", roll_text), result)?;
+    msg.reply(ctx, text).await?;
     Ok(())
 }
 
@@ -159,5 +159,7 @@ async fn char(ctx: &Context, msg: &Message) -> CommandResult {
     }
     Ok(())
 }
+
+
 
 

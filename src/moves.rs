@@ -28,8 +28,14 @@ pub fn get_move(name: &str) -> Result<Move> {
 }
 
 
-pub fn get_move_text(mv: Move, roll: i32) -> Result<String> {
+pub fn get_move_text(mv: Move, dice_string: String, roll: i32) -> Result<String> {
     let mut message = mv.preamble.unwrap_or(String::new());
+    if message.len() != 0 {
+        message.push_str("\n\n");
+    }
+    message.push_str(&dice_string);
+    message.push_str("\n");
+        
     for (matcher, text) in mv.options.into_iter() {
         let meets_bound = match matcher {
             Matcher::Less(bound) => roll <= bound,
@@ -37,10 +43,12 @@ pub fn get_move_text(mv: Move, roll: i32) -> Result<String> {
             Matcher::Greater(bound) => roll >= bound,
         };
         if meets_bound {
-            message = format!("{}\n{}", message, text);
+            message.push('\n');
+            message.push_str(&text);
         }
     }
-    message = format!("{}\n{}", message, mv.postamble.unwrap_or(String::new()));
+    message.push('\n');
+    message.push_str(&mv.postamble.unwrap_or(String::new()));
 
     Ok(message)
 }

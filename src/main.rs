@@ -87,7 +87,7 @@ async fn roll(ctx: &Context, msg: &Message) -> CommandResult {
            Some(idx) => msg.content.split_at(idx + 1).1,
            None => "",
         };
-        let param = parameters::parameters(contents);
+        let param = parameters::parameters(contents)?;
         let (_, message) = calculate_roll(msg.author.id.0, param)?;
         Ok(message)
     }).await
@@ -107,6 +107,7 @@ async fn moves(ctx: &Context, msg: &Message) -> CommandResult {
 #[example("Overcome")]
 #[example("TalkSense")]
 #[example("FinishBlood -1,despair")]
+#[example("GetAway =2")]
 /// Make a move, possibly with advantage or disadvantage
 async fn mv(ctx: &Context, msg: &Message) -> CommandResult {
     command_wrapper(ctx, msg, |msg| {
@@ -115,7 +116,7 @@ async fn mv(ctx: &Context, msg: &Message) -> CommandResult {
         let move_name = words.next().context("Move name required")?;
         let mv = moves::get_move(move_name)?;
         let parameters = words.collect::<Vec<&str>>().join(" ");
-        let mut param = parameters::parameters(&parameters);
+        let mut param = parameters::parameters(&parameters)?;
         if let Some((ref stat, sign)) = mv.stat {
             param.modifiers.push(Modifier::Stat { stat, sign });
         }
@@ -194,15 +195,13 @@ async fn command_wrapper(ctx: &Context, msg: &Message, f: impl FnOnce(&Message) 
 fn calculate_roll(user: u64, Parameters { modifiers, character, hope, despair }: Parameters) -> Result<(i32, String)> {
     use std::cmp::{max, min};
 
-    let d1 = i32(1..6);
-    let d2 = i32(1..6);
-
     if hope && despair {
         // TODO: wording
         bail!("You can't roll with advantage AND disadvantage!");
     }
     
     let (mut mod_num, mut mod_string) = (0, String::new());
+    let mut do_roll = true;
     for modifier in modifiers {
         match modifier {
             Modifier::Number(num) => {
@@ -215,25 +214,39 @@ fn calculate_roll(user: u64, Parameters { modifiers, character, hope, despair }:
                 mod_num += value;
                 mod_string.push_str(&format!("{}{} [{}]", sign, stat, value));
             }
+            Modifier::Set(num) => {
+                mod_num = num;
+                mod_string = format!("manually input {}", mod_num);
+                do_roll = false;
+            }
         }
     }
 
-    let mut sum = d1 + d2 + mod_num;
-    let mut dice = format!("Rolled {} and {}", d1, d2);
+    let mut sum = mod_num;
+    let mut dice = String::new();
 
-    if hope {
-        let d3 = i32(1..6);
-        let least = min(d1, min(d2, d3));
-        sum += d3 - least;
-        dice = format!("Rolled {}, {} and {}; dropped {}", d1, d2, d3, least);
-    } else if despair {
-        let d3 = i32(1..6);
-        let greatest = max(d1, max(d2, d3));
-        sum += d3 - greatest;
-        dice = format!("Rolled {}, {} and {}; dropped {}", d1, d2, d3, greatest);
+    if do_roll {
+        let d1 = i32(1..6);
+        let d2 = i32(1..6);
+
+        sum += d1 + d2;
+
+        if hope {
+            let d3 = i32(1..6);
+            let least = min(d1, min(d2, d3));
+            sum += d3 - least;
+            dice = format!("(Rolled {}, {} and {}; dropped {})", d1, d2, d3, least);
+        } else if despair {
+            let d3 = i32(1..6);
+            let greatest = max(d1, max(d2, d3));
+            sum += d3 - greatest;
+            dice = format!("(Rolled {}, {} and {}; dropped {})", d1, d2, d3, greatest);
+        } else {
+            dice = format!("(Rolled {} and {})", d1, d2);
+        }
     }
 
     let name = char::get_current_char(user)?;
 
-    Ok((sum, format!("{} got a **{}**, ({}){}", name, sum, dice, mod_string)))
+    Ok((sum, format!("{} got a **{}**, {}{}", name, sum, dice, mod_string)))
 }

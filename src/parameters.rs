@@ -1,3 +1,4 @@
+use anyhow::Result;
 
 #[derive(Default)]
 pub struct Parameters<'a> {
@@ -14,9 +15,10 @@ pub enum Modifier<'a> {
         sign: i32,
         stat: &'a str,
     },
+    Set(i32),
 }
 
-pub fn parameters<'a>(contents: &'a str) -> Parameters<'a> {
+pub fn parameters<'a>(contents: &'a str) -> Result<Parameters<'a>> {
     let mut parameters = Parameters::default();
 
     for param in contents.split(&[',', ' '][..]) { 
@@ -29,6 +31,9 @@ pub fn parameters<'a>(contents: &'a str) -> Parameters<'a> {
                         stat: &param[1..]
                     },
                 });
+            }
+            Some('=') => {
+                parameters.modifiers.push(Modifier::Set(param[1..].parse::<i32>()?));
             }
             Some('@') => {
                 parameters.character = Some(&param[1..]);
@@ -44,5 +49,5 @@ pub fn parameters<'a>(contents: &'a str) -> Parameters<'a> {
         }
     }
 
-    parameters
+    Ok(parameters)
 }

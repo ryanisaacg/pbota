@@ -33,7 +33,9 @@ pub fn choose(id: u64, name: &str) -> Result<()> {
 
 pub fn set_stat(name: &str, stat: &str, val: i32) -> Result<()> {
     let mut cfg = read_config()?;
-    cfg.characters.get_mut(name).context("Character not found")?.stats.insert(stat.to_owned(), val);
+    cfg.characters.get_mut(name)
+        .with_context(|| format!("Character {} not found", name))?
+        .stats.insert(stat.to_owned(), val);
     write_config(cfg)?;
 
     Ok(())
@@ -46,9 +48,11 @@ pub fn get_stat(name: Option<&str>, user: u64, stat: &str) -> Result<i32> {
     } else {
         cfg.user_to_char.get(&user).context("No character chosen")?
     };
-    let val = cfg.characters.get(name).context("Character not found")?.stats.get(stat).context("Stat not set")?;
 
-    Ok(*val)
+    Ok(*cfg.characters.get(name)
+        .with_context(|| format!("Character {} not found", name))?
+        .stats.get(stat)
+        .with_context(|| format!("Stat {} not set for character {}", stat, name))?)
 }
 
 fn read_config() -> Result<CharConfig> {

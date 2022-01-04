@@ -76,7 +76,7 @@ async fn unrecognised_command(ctx: &Context, msg: &Message, name: &str) {
 
 #[command]
 #[aliases(r)]
-#[usage("[Modifier] [hope/despair]")]
+#[usage("[+Modifier] [hope/despair] [=Bring your own dice] [@Character]")]
 #[example("+Grace,hope")]
 #[example("-2")]
 #[example("+2 d")]
@@ -103,9 +103,9 @@ async fn moves(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command("move")]
 #[aliases(m)]
-#[usage("MoveName [Modifier],[hope/despair]")]
+#[usage("MoveName [+Modifier],[hope/despair],[=Bring your own dice],[@Character]")]
 #[example("Overcome")]
-#[example("TalkSense")]
+#[example("TalkSense @AshenOne")]
 #[example("FinishBlood -1,despair")]
 #[example("GetAway =2")]
 /// Make a move, possibly with advantage or disadvantage
@@ -246,7 +246,9 @@ fn calculate_roll(user: u64, Parameters { modifiers, character, hope, despair }:
         }
     }
 
-    let name = char::get_current_char(user)?;
+    let name = character
+        .map(|c| Ok(c.to_owned()))
+        .unwrap_or_else(|| char::get_current_char(user))?;
 
     Ok((sum, format!("{} got a **{}**, {}{}", name, sum, dice, mod_string)))
 }

@@ -23,7 +23,9 @@ enum Matcher {
 }
 
 pub fn get_moves() -> Result<Vec<String>> {
-    Ok(read_config()?.moves.keys().cloned().collect())
+    let mut moves = read_config()?.moves.keys().cloned().collect::<Vec<String>>();
+    moves.sort();
+    Ok(moves)
 }
 
 pub fn get_move(name: &str) -> Result<Move> {

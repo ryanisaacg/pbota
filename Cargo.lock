@@ -15,18 +15,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "84450d0b4a8bd1ba4144ce8ce718fbc5d071358b1e5384bace6536b3d1f2d5b3"
 
 [[package]]
-name = "apocalypse-fuel"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "fastrand",
- "serde",
- "serde_json",
- "serenity",
- "tokio 1.15.0",
-]
-
-[[package]]
 name = "async-trait"
 version = "0.1.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -794,6 +782,18 @@ name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
+
+[[package]]
+name = "pbota"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "fastrand",
+ "serde",
+ "serde_json",
+ "serenity",
+ "tokio 1.15.0",
+]
 
 [[package]]
 name = "percent-encoding"

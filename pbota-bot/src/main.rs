@@ -148,6 +148,7 @@ async fn moves(ctx: &Context, msg: &Message) -> CommandResult {
 #[example("TalkSense @AshenOne")]
 #[example("FinishBlood -1,despair")]
 #[example("GetAway =2")]
+#[sub_commands(describe)]
 /// Make a move, possibly with advantage or disadvantage
 async fn mv(ctx: &Context, msg: &Message) -> CommandResult {
     command_wrapper(ctx, msg, |msg| {
@@ -162,6 +163,25 @@ async fn mv(ctx: &Context, msg: &Message) -> CommandResult {
         }
         let (result, roll_text) = calculate_roll(msg.author.id.0, param)?;
         Ok(moves::get_move_text(mv, roll_text, result)?)
+    }).await
+}
+
+#[command]
+#[usage("YourMove")]
+/// Show all information about a move
+async fn describe(ctx: &Context, msg: &Message) -> CommandResult {
+    command_wrapper(ctx, msg, |msg| {
+        let mut words = msg.content.split(' ');
+        words.next();
+        words.next(); // strip leading
+        let name = words.next().context("No move provided")?;
+        let moves::Move { preamble, postamble, options, .. } = moves::get_move(&name)?;
+        let preamble = preamble.unwrap_or("".to_owned());
+        let postamble = postamble.unwrap_or("".to_owned());
+        let options = options.into_iter().map(|(_, line)| line)
+            .collect::<Vec<String>>()
+            .join("\n");
+        Ok(format!("{preamble}\n{options}\n{postamble}"))
     }).await
 }
 

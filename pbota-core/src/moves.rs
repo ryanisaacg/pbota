@@ -34,12 +34,12 @@ pub fn get_move(name: &str) -> Result<Move> {
 
 
 pub fn get_move_text(mv: Move, dice_string: String, roll: i32) -> Result<String> {
-    let mut message = mv.preamble.unwrap_or(String::new());
-    if message.len() != 0 {
+    let mut message = mv.preamble.unwrap_or_default();
+    if !message.is_empty() {
         message.push_str("\n\n");
     }
     message.push_str(&dice_string);
-    message.push_str("\n");
+    message.push('\n');
         
     for (matcher, text) in mv.options.into_iter() {
         let meets_bound = match matcher {
@@ -53,7 +53,7 @@ pub fn get_move_text(mv: Move, dice_string: String, roll: i32) -> Result<String>
         }
     }
     message.push('\n');
-    message.push_str(&mv.postamble.unwrap_or(String::new()));
+    message.push_str(&mv.postamble.unwrap_or_default());
 
     Ok(message)
 }

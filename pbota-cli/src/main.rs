@@ -26,10 +26,10 @@ fn main() {
                 options.push((match_range, format!("On a {range}, {text}")));
             }
             let postamble = prompt("What's the move's postamble?");
-            let stat = if stat.chars().next() == Some('-') {
-                Some((stat[1..].to_owned(), -1))
-            } else if stat.chars().next() == Some('+') {
-                Some((stat[1..].to_owned(), 1))
+            let stat = if let Some(stat) = stat.strip_prefix('-') {
+                Some((stat.to_owned(), -1))
+            } else if let Some(stat) = stat.strip_prefix('+') {
+                Some((stat.to_owned(), 1))
             } else {
                 Some((stat, 1))
             };
@@ -48,7 +48,7 @@ fn main() {
 
 fn matcher(line: &str) -> moves::Matcher {
     let (first, line) = num(line);
-    if line.chars().next() == Some('+') {
+    if line.starts_with('+') {
         moves::Matcher::Greater(first)
     } else if line.len() > 1 {
         let (second, _) = num(&line[1..]);

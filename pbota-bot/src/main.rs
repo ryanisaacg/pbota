@@ -103,7 +103,7 @@ fn help<'fut>(
     owners: HashSet<UserId>,
 ) -> ::serenity::futures::future::BoxFuture<'fut, CommandResult> {
     async move {
-        let _ = plain(context, msg, args, &help_options, groups, owners).await;
+        let _ = plain(context, msg, args, help_options, groups, owners).await;
         Ok(())
     }.boxed()
 }
@@ -162,7 +162,7 @@ async fn mv(ctx: &Context, msg: &Message) -> CommandResult {
             param.modifiers.push(Modifier::Stat { stat, sign });
         }
         let (result, roll_text) = calculate_roll(msg.author.id.0, param)?;
-        Ok(moves::get_move_text(mv, roll_text, result)?)
+        moves::get_move_text(mv, roll_text, result)
     }).await
 }
 
@@ -175,9 +175,9 @@ async fn describe(ctx: &Context, msg: &Message) -> CommandResult {
         words.next();
         words.next(); // strip leading
         let name = words.next().context("No move provided")?;
-        let moves::Move { preamble, postamble, options, .. } = moves::get_move(&name)?;
-        let preamble = preamble.unwrap_or("".to_owned());
-        let postamble = postamble.unwrap_or("".to_owned());
+        let moves::Move { preamble, postamble, options, .. } = moves::get_move(name)?;
+        let preamble = preamble.unwrap_or_default();
+        let postamble = postamble.unwrap_or_default();
         let options = options.into_iter().map(|(_, line)| line)
             .collect::<Vec<String>>()
             .join("\n");

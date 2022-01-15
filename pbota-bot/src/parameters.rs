@@ -18,7 +18,7 @@ pub enum Modifier<'a> {
     Set(i32),
 }
 
-pub fn parameters<'a>(contents: &'a str) -> Result<Parameters<'a>> {
+pub fn parameters(contents: &str) -> Result<Parameters<'_>> {
     let mut parameters = Parameters::default();
 
     for param in contents.split(&[',', ' '][..]) { 

@@ -2,6 +2,7 @@ use anyhow::{Context as AContext, Result, bail};
 use fastrand::i32;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
+use serenity::futures::future::{BoxFuture, FutureExt};
 use serenity::model::{
     id::UserId,
     channel::Message,
@@ -13,7 +14,7 @@ use serenity::framework::standard::{
     StandardFramework,
     HelpOptions,
     help_commands::plain,
-    macros::{command, group, help, hook}
+    macros::{command, group}
 };
 
 use std::env;
@@ -38,12 +39,11 @@ async fn main() {
     let framework = StandardFramework::new()
         .configure(|c| c.prefix("-"))
         .group(&GENERAL_GROUP)
-        .help(&MY_HELP)
-        .unrecognised_command(unrecognised_command);
+        .help(&HELP)
+        .unrecognised_command(unknown_command);
 
     // Login with a bot token from the environment
     let token = env::var("DISCORD_TOKEN").expect("token");
-    println!("{}", token);
     let mut client = Client::builder(token)
         .event_handler(Handler)
         .framework(framework)
@@ -56,22 +56,63 @@ async fn main() {
     }
 }
 
-#[help]
-async fn my_help(
-    context: &Context,
-    msg: &Message,
+
+pub static HELP_OPTIONS: HelpOptions = HelpOptions {
+    names: & ["help"],
+    suggestion_text: "Did you mean `{}`?",
+    no_help_available_text: "**Error**: No help available.",
+    usage_label: "Usage",
+    usage_sample_label: "Sample usage",
+    ungrouped_label: "Ungrouped",
+    grouped_label: "Group",
+    aliases_label: "Aliases",
+    description_label: "Description",
+    guild_only_text: "Only in servers",
+    checks_label: "Checks",
+    sub_commands_label: "Sub Commands",
+    dm_only_text: "Only in DM",
+    dm_and_guild_text: "In DM and servers",
+    available_text: "Available",
+    command_not_found_text: "**Error**: Command `{}` not found.",
+    individual_command_tip: "To get help with an individual command, pass its name as an argument to this command.",
+    group_prefix: "Prefix",
+    strikethrough_commands_tip_in_dm: None,
+    strikethrough_commands_tip_in_guild: None,
+    lacking_role: serenity::framework::standard::HelpBehaviour::Strike,
+    lacking_permissions: serenity::framework::standard::HelpBehaviour::Strike,
+    lacking_ownership: serenity::framework::standard::HelpBehaviour::Hide,
+    lacking_conditions: serenity::framework::standard::HelpBehaviour::Strike,
+    wrong_channel: serenity::framework::standard::HelpBehaviour::Strike,
+    embed_error_colour: serenity::utils::Colour (10038562u32),
+    embed_success_colour: serenity::utils::Colour (16178136u32),
+    max_levenshtein_distance: 1usize ,
+    indention_prefix: "-" ,
+};
+
+pub static HELP: serenity::framework::standard::HelpCommand =
+    serenity::framework::standard::HelpCommand {
+        fun: help,
+        options: &HELP_OPTIONS,
+    };
+
+fn help<'fut>(
+    context: &'fut Context,
+    msg: &'fut Message,
     args: Args,
-    help_options: &'static HelpOptions,
-    groups: &[&'static CommandGroup],
-    owners: HashSet<UserId>
-) -> CommandResult {
-    let _ = plain(context, msg, args, &help_options, groups, owners).await;
-    Ok(())
+    help_options: &'fut HelpOptions,
+    groups: &'fut [&'static CommandGroup],
+    owners: HashSet<UserId>,
+) -> ::serenity::futures::future::BoxFuture<'fut, CommandResult> {
+    async move {
+        let _ = plain(context, msg, args, &help_options, groups, owners).await;
+        Ok(())
+    }.boxed()
 }
 
-#[hook]
-async fn unrecognised_command(ctx: &Context, msg: &Message, name: &str) {
-    msg.reply(ctx, format!("Unknown command: {}", name)).await.unwrap();
+fn unknown_command<'a>(ctx: &'a Context, msg: &'a Message, name: &'a str) -> BoxFuture<'a, ()> {
+    async move {
+        msg.reply(ctx, format!("Unknown command: {}", name)).await.unwrap();
+    }.boxed()
 }
 
 #[command]
@@ -128,6 +169,7 @@ async fn mv(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[aliases(c)]
 #[sub_commands(new, choose, stat)]
+/// Manage your character and their stats. Will print the currently selected character
 async fn char(ctx: &Context, msg: &Message) -> CommandResult {
     command_wrapper(ctx, msg, |msg| {
         Ok(format!("You are set up to roll as {}", char::get_current_char(msg.author.id.0)?))

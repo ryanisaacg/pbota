@@ -16,12 +16,11 @@ use serenity::framework::standard::{
     help_commands::plain,
     macros::{command, group}
 };
+use pbota_core::{char, moves};
 
 use std::env;
 use std::collections::HashSet;
 
-mod char;
-mod moves;
 mod parameters;
 use parameters::{Parameters, Modifier};
 

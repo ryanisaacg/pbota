@@ -172,6 +172,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "env_logger"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a19187fea3ac7e84da7dacf48de0c45d63c6a76f9490dae389aead16c243fce3"
+dependencies = [
+ "log",
+]
+
+[[package]]
 name = "fastrand"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -597,31 +606,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
-name = "pbota-bot"
+name = "pbota"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "env_logger",
  "fastrand",
- "pbota-core",
- "serenity",
- "tokio",
-]
-
-[[package]]
-name = "pbota-cli"
-version = "0.1.0"
-dependencies = [
- "pbota-core",
- "serde_json",
-]
-
-[[package]]
-name = "pbota-core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
  "serde",
  "serde_json",
+ "serenity",
+ "tokio",
 ]
 
 [[package]]

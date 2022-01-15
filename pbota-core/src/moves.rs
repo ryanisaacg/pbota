@@ -9,14 +9,14 @@ struct MoveList {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Move {
-    preamble: Option<String>,
-    postamble: Option<String>,
-    options: Vec<(Matcher, String)>,
+    pub preamble: Option<String>,
+    pub postamble: Option<String>,
+    pub options: Vec<(Matcher, String)>,
     pub stat: Option<(String, i32)>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-enum Matcher {
+pub enum Matcher {
     Less(i32),
     Range(i32, i32),
     Greater(i32),
@@ -64,5 +64,19 @@ fn read_config() -> Result<MoveList> {
         Ok(file) => serde_json::from_str::<MoveList>(&file)?,
         Err(_) => MoveList::default(),
     })
+}
+
+pub fn add_move(name: String, mov: Move) -> Result<()> {
+    use std::io::Write;
+
+    let mut config = read_config()?;
+    config.moves.insert(name, mov);
+
+    let data = serde_json::to_string(&config)?;
+    let f = std::fs::File::create("moves.json")?;
+    let mut f = std::io::BufWriter::new(f);
+    f.write_all(data.as_bytes())?;
+
+    Ok(())
 }
 

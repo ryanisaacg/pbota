@@ -1,0 +1,23 @@
+[package]
+name = "pbota-bot"
+version = "0.1.0"
+authors = ["Ryan Goldstein <ryan@ryanisaacg.com>"]
+edition = "2018"
+
+[dependencies]
+pbota-core = { path = "../pbota-core" }
+fastrand = "1"
+
+[dependencies.anyhow]
+default-features = false
+features = [ "std" ]
+version = "1"
+
+[dependencies.tokio]
+version = "1"
+features = [ "rt-multi-thread" ]
+
+[dependencies.serenity]
+default-features = false
+features = ["cache", "framework", "gateway", "http", "rustls_backend", "standard_framework"]
+version = "0.10"

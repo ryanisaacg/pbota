@@ -7,10 +7,14 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1"
 fastrand = "1"
 serde = "1"
 serde_json = "1"
+
+[dependencies.anyhow]
+default-features = false
+features = [ "std" ]
+version = "1"
 
 [dependencies.tokio]
 version = "1"
@@ -18,5 +22,5 @@ features = [ "rt-multi-thread" ]
 
 [dependencies.serenity]
 default-features = false
-features = ["default_tokio_0_2", "gateway", "rustls_backend"]
+features = ["cache", "framework", "gateway", "http", "rustls_backend", "standard_framework"]
 version = "0.10"

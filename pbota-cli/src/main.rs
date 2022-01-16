@@ -23,7 +23,7 @@ fn main() {
                 }
                 let match_range = matcher(&range[..]);
                 let text = prompt("...");
-                options.push((match_range, format!("On a {range}, {text}")));
+                options.push((match_range, format!("**On a {range}**, {text}")));
             }
             let postamble = prompt("What's the move's postamble?");
             let stat = if let Some(stat) = stat.strip_prefix('-') {

@@ -134,6 +134,7 @@ async fn roll(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
+#[sub_commands(describe)]
 /// List all possible moves
 async fn moves(ctx: &Context, msg: &Message) -> CommandResult {
     command_wrapper(ctx, msg, |_msg| {

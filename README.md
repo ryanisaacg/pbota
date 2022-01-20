@@ -6,9 +6,11 @@ My friends and I were playing [Fellowship 2e](TODO) and I wanted to set up a Dis
 
 You should be able to take any game that rolls 2d6 and adds a stat, and has specific moves tied to specific stats with specific, ranged outcomes. PbtA games that don't follow this formula from the "Apocalypse Engine" (such as *Blades in the Dark* or *Mobile Frame Zero: Firebrands*) aren't supported.
 
-## Setting up the bot
+## A note on support and interfaces
 
-A word of warning: I'm not going to host this bot for you. What you're getting here is some free source code, and nothing more than that. To set this up you'll need to be comfortable rolling up your sleeves and poking around at a few computer things.
+A word of warning: I'm not going to host this bot for you. What you're getting here is some free source code and permission to do more-or-less whatever you want with it. To set this up you'll need to be comfortable rolling up your sleeves and poking around at a few computer things. Over time if there's interest I may add more convenience features and a friendlier interface, but there's no guarantee.
+
+## Setting up the bot
 
 ### Adding the bot to your server
 
@@ -32,4 +34,22 @@ Now that you have the bot account on your server, it's time to power it up.
 5. Set this token as an environment variable in the command line called "DISCORD_TOKEN." On Windows you should be able to do this via the command `set DISCORD_TOKEN=MY_TOKEN`; on macOS and Linux, you'll want `DISCORD_TOKEN=MY_TOKEN`. (Yes I know if you're using Powershell or Fish or what have you the command will be different. I'm sure you can figure it out in that case).
 6. Run the command `cargo run -p pbota-bot`.
 
+As you use the bot it will automatically create a `characters.json` file, which will track information about people's characters and their stats. You'll also want to create a `moves.json` file (which can start off with just the following contents:
+```json
+{
+    "moves": {
+    }
+}
+```
+).
+
 If you've added the bot to your server, you have the correct token, and the project runs and builds without errors, you should be good to go! Try saying `-help` in any channel on your Discord server to test the bot.
+
+## Teaching the bot moves
+
+By default, PBotA is pretty naive. It doesn't come pre-packaged with any Moves from any game, partly because it's system-agnostic and partly because I think that may be a copyright violation. You'll have to teach it moves you want it to know yourself, which is most convenient via `pbota-cli`. Assuming you've done all the steps for setting up the bot, go to the directory where the bot is cloned and run `cargo run -p pbota-cli`.
+
+This will launch a little interactive program that prompts for the move's stat (no +, just the name like "Sharp" or "Grace") and the move "preamble" ("When you XYZ, roll +Stat"). It will then one-by-one prompt for options like "On a 10+" or "On a 6-". Most PbtA moves will be 10+/7-9/6- but plenty of games have little exceptions or tweaks, so PBotA makes no assumptions. (You can even have overlapping ranges!) Once you've entered all the options, just hit enter without entering a range and move on the "postamble."
+
+As a reward for your hard work you're rewarded with a chunk of JSON, which you can add to your `moves.json` file. Add the entry `"YourMoveName": TheJSONSpitOutByTheCommand` within `moves` in `moves.json`.
+

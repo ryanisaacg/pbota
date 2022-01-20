@@ -1,10 +1,5 @@
 name: Integration
-on:
-  pull_request:
-    paths:
-      - 'src/**.rs'
-      - 'Cargo.toml'
-      - '.github/workflows/integration.yml'
+on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest

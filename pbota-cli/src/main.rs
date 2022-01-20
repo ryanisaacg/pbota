@@ -1,4 +1,3 @@
-use std::env;
 use std::io::{self, BufRead};
 use pbota_core::moves;
 
@@ -10,40 +9,34 @@ fn main() {
         iterator.next().unwrap().unwrap()
     };
 
-    let args: Vec<String> = env::args().collect();
-    match &args[1][..] {
-        "move" => {
-            let stat = prompt("What stat are you rolling? (Leave blank for none)");
-            let preamble = prompt("What's the move's preamble?");
-            let mut options = Vec::new();
-            loop {
-                let range = prompt("On a... (Leave blank for done)");
-                if range.is_empty() {
-                    break;
-                }
-                let match_range = matcher(&range[..]);
-                let text = prompt("...");
-                options.push((match_range, format!("**On a {range}**, {text}")));
-            }
-            let postamble = prompt("What's the move's postamble?");
-            let stat = if let Some(stat) = stat.strip_prefix('-') {
-                Some((stat.to_owned(), -1))
-            } else if let Some(stat) = stat.strip_prefix('+') {
-                Some((stat.to_owned(), 1))
-            } else {
-                Some((stat, 1))
-            };
-            let move_val = moves::Move {
-                preamble: Some(preamble), // TODO
-                postamble: Some(postamble), // TODO
-                options,
-                stat,
-            };
-            let data = serde_json::to_string(&move_val).unwrap();
-            println!("{data}");
+    let stat = prompt("What stat are you rolling? (Leave blank for none)");
+    let preamble = prompt("What's the move's preamble?");
+    let mut options = Vec::new();
+    loop {
+        let range = prompt("On a... (Leave blank for done)");
+        if range.is_empty() {
+            break;
         }
-        _ => {}
+        let match_range = matcher(&range[..]);
+        let text = prompt("...");
+        options.push((match_range, format!("**On a {range}**, {text}")));
     }
+    let postamble = prompt("What's the move's postamble?");
+    let stat = if let Some(stat) = stat.strip_prefix('-') {
+        Some((stat.to_owned(), -1))
+    } else if let Some(stat) = stat.strip_prefix('+') {
+        Some((stat.to_owned(), 1))
+    } else {
+        Some((stat, 1))
+    };
+    let move_val = moves::Move {
+        preamble: Some(preamble), // TODO
+        postamble: Some(postamble), // TODO
+        options,
+        stat,
+    };
+    let data = serde_json::to_string(&move_val).unwrap();
+    println!("{data}");
 }
 
 fn matcher(line: &str) -> moves::Matcher {

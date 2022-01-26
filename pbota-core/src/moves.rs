@@ -29,7 +29,7 @@ pub fn get_moves() -> Result<Vec<String>> {
 }
 
 pub fn get_move(name: &str) -> Result<Move> {
-    Ok(read_config()?.moves.get(name).context("Move not found")?.clone())
+    Ok(read_config()?.moves.get(&name.to_lowercase()).context("Move not found")?.clone())
 }
 
 
@@ -60,9 +60,13 @@ pub fn get_move_text(mv: Move, dice_string: String, roll: i32) -> Result<String>
 
 fn read_config() -> Result<MoveList> {
     // TODO: find a specific file?
-    Ok(match std::fs::read_to_string("moves.json") {
+    let MoveList { moves } = match std::fs::read_to_string("moves.json") {
         Ok(file) => serde_json::from_str::<MoveList>(&file)?,
         Err(_) => MoveList::default(),
+    };
+
+    Ok(MoveList {
+        moves: moves.into_iter().map(|(key, val)| (key.to_lowercase(), val)).collect(),
     })
 }
 

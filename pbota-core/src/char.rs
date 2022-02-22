@@ -17,7 +17,7 @@ pub struct CharInfo {
 
 pub fn new(name: &str) -> Result<()> {
     let mut cfg = read_config()?;
-    cfg.characters.insert(name.to_owned(), CharInfo::default());
+    cfg.characters.insert(name.to_lowercase(), CharInfo::default());
     write_config(cfg)?;
 
     Ok(())
@@ -25,7 +25,7 @@ pub fn new(name: &str) -> Result<()> {
 
 pub fn choose(id: u64, name: &str) -> Result<()> {
     let mut cfg = read_config()?;
-    cfg.user_to_char.insert(id, name.to_owned());
+    cfg.user_to_char.insert(id, name.to_lowercase());
     write_config(cfg)?;
 
     Ok(())
@@ -33,9 +33,9 @@ pub fn choose(id: u64, name: &str) -> Result<()> {
 
 pub fn set_stat(name: &str, stat: &str, val: i32) -> Result<()> {
     let mut cfg = read_config()?;
-    cfg.characters.get_mut(name)
+    cfg.characters.get_mut(&name.to_lowercase())
         .with_context(|| format!("Character {} not found", name))?
-        .stats.insert(stat.to_owned(), val);
+        .stats.insert(stat.to_lowercase(), val);
     write_config(cfg)?;
 
     Ok(())
@@ -54,9 +54,9 @@ pub fn get_stat(name: Option<&str>, user: u64, stat: &str) -> Result<i32> {
         current_char(&cfg, user)?
     };
 
-    Ok(*cfg.characters.get(name)
+    Ok(*cfg.characters.get(&name.to_lowercase())
         .with_context(|| format!("Character {} not found", name))?
-        .stats.get(stat)
+        .stats.get(&stat.to_lowercase())
         .with_context(|| format!("Stat {} not set for character {}", stat, name))?)
 }
 
